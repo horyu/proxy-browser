@@ -1,6 +1,6 @@
-# Proxy Safari Launcher
+# Proxy Browser Launcher
 
-This project launches Safari (using Playwright's WebKit) with proxy settings configured from a `.env` file.
+This project launches Chrome, Safari, or Firefox with proxy settings configured from a `.env` file using Playwright.
 
 ## Prerequisites
 
@@ -27,7 +27,7 @@ After installation, ensure mise is activated in your shell (follow the post-inst
 
    ```bash
    git clone <repository-url>
-   cd proxy-safari
+   cd proxy-browser
    ```
 
 2. Install dependencies:
@@ -50,19 +50,39 @@ After installation, ensure mise is activated in your shell (follow the post-inst
    # Edit .env with your proxy details
    ```
 
-5. Run the project:
+5. Run the project with your preferred browser:
+
+   **Chrome:**
 
    ```bash
-   pnpm run start
+   pnpm run chrome
+   # With storage state:
+   pnpm run chrome:storage
    ```
 
-   To launch with saved storage state (automatically loads and saves):
+   **Safari (default):**
 
    ```bash
-   pnpm run start-with-storage
+   pnpm run safari
+   # With storage state:
+   pnpm run safari:storage
    ```
 
-This will launch Safari with the proxy settings applied.
+   **Firefox:**
+
+   ```bash
+   pnpm run firefox
+   # With storage state:
+   pnpm run firefox:storage
+   ```
+
+   You can also run directly with Node.js:
+
+   ```bash
+   node --env-file=.env index.js [chrome|safari|firefox] [--with-storage]
+   ```
+
+This will launch the selected browser with the proxy settings applied. The `:storage` variants automatically load and save browser state (cookies, localStorage, etc.).
 
 ## License
 

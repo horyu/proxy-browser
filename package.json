@@ -1,12 +1,16 @@
 {
-  "name": "proxy-safari",
+  "name": "proxy-browser",
   "version": "1.0.0",
-  "description": "Launch Safari with proxy settings using Playwright",
+  "description": "Launch Chrome, Safari, or Firefox with proxy settings using Playwright",
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "node --env-file=.env index.js",
-    "start-with-storage": "node --env-file=.env index.js --with-storage"
+    "chrome": "node --env-file=.env index.js chrome",
+    "chrome:storage": "node --env-file=.env index.js chrome --with-storage",
+    "safari": "node --env-file=.env index.js safari",
+    "safari:storage": "node --env-file=.env index.js safari --with-storage",
+    "firefox": "node --env-file=.env index.js firefox",
+    "firefox:storage": "node --env-file=.env index.js firefox --with-storage"
   },
   "dependencies": {
     "playwright": "^1.57.0"
