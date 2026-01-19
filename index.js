@@ -4,50 +4,39 @@ import { chromium, firefox, webkit } from 'playwright';
 /**
  * ストレージ管理を設定する
  *
- * 5秒ごとに直接ファイルに書き込む理由:
- * - browser.on('disconnected') や context.on('close') などのフックイベントでは、
- *   イベント発火時点で既にブラウザが閉じる過程にあり、非同期の storageState() 呼び出しが
- *   完了しない可能性が高いため、定期的にファイルに保存する方式を採用
+ * シグナルハンドラーでストレージを保存する:
+ * - storageState() の実行中に一時的なタブが開かれるため、定期保存は避ける
+ * - プログラム終了時（SIGINT/SIGTERM）のみストレージを保存する
+ * - LaunchOptionsでhandleSIGINT/SIGTERM/SIGHUPをfalseに設定することで、
+ *   Playwrightのデフォルトハンドラーを無効化し、独自のハンドラーで処理する
  *
- * @param {import('playwright').Browser} browser
  * @param {import('playwright').BrowserContext} context
  * @param {string} storageFileName
  */
-function setupStorageManagement(browser, context, storageFileName) {
-  // 定期的にファイルに直接書き込む（5秒ごと）
-  // storageState({ path }) を使うことで、直接ファイルに保存される
-  const saveInterval = setInterval(async () => {
-    try {
-      await context.storageState({ path: storageFileName });
-    } catch (error) {
-      // エラーは無視（ブラウザが閉じられた場合など）
-    }
-  }, 5000); // 5秒ごとにファイルに保存
+function setupStorageManagement(context, storageFileName) {
+  let isShuttingDown = false;
 
-  // ブラウザが切断された時の処理
-  browser.on('disconnected', () => {
-    clearInterval(saveInterval);
-  });
-
-  // シグナルハンドラーの共通処理
   const handleShutdown = async (signal) => {
-    clearInterval(saveInterval);
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+
     console.log(`\nShutting down gracefully (${signal})...`);
-    // 最新の状態を保存してから終了
     try {
       await context.storageState({ path: storageFileName });
       console.log(`Storage state saved to ${storageFileName}`);
     } catch (error) {
-      // エラーは無視（既に定期保存されている）
+      console.error('Failed to save storage state:', error.message);
     }
     process.exit(0);
   };
 
-  // SIGINT (Ctrl+C) でストレージ状態を保存してから閉じる
-  process.on('SIGINT', () => handleShutdown('SIGINT'));
+  process.on('SIGINT', async () => {
+    await handleShutdown('SIGINT');
+  });
 
-  // SIGTERM (kill コマンドなど) でもストレージを保存
-  process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+  process.on('SIGTERM', async () => {
+    await handleShutdown('SIGTERM');
+  });
 }
 
 async function main() {
@@ -78,13 +67,25 @@ async function main() {
       break;
   }
 
-  const browser = await browserEngine.launch({ headless: false });
+  // ストレージ機能を有効にするかどうか
+  const withStorage = process.argv.includes('--with-storage');
+
+  /** @type {import('playwright').LaunchOptions} */
+  const launchOptions = {
+    headless: false,
+    // ストレージ有効時はPlaywrightのデフォルトシグナルハンドリングを無効化
+    // 独自のシグナルハンドラーでストレージを保存してから終了する
+    ...(withStorage && {
+      handleSIGINT: false,
+      handleSIGTERM: false,
+      handleSIGHUP: false,
+    }),
+  };
+
+  const browser = await browserEngine.launch(launchOptions);
 
   /** @type {import('playwright').BrowserContextOptions} */
   let contextOptions = { proxy };
-
-  // ストレージ機能を有効にするかどうか
-  const withStorage = process.argv.includes('--with-storage');
 
   // ブラウザごとのストレージファイル名
   const storageFileName = `storage-state-${browserType}.json`;
@@ -102,7 +103,7 @@ async function main() {
   // ストレージ管理を設定（有効な場合のみ）
   // ストレージなしの場合は、保存すべき状態がないためクリーンアップ処理は不要
   if (withStorage) {
-    setupStorageManagement(browser, context, storageFileName);
+    setupStorageManagement(context, storageFileName);
   }
 }
 
