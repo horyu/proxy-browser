@@ -26,6 +26,8 @@ function setupStorageManagement(context, storageFileName) {
       console.log(`Storage state saved to ${storageFileName}`);
     } catch (error) {
       console.error('Failed to save storage state:', error.message);
+    } finally {
+      await context.browser()?.close();
     }
     process.exit(0);
   };
