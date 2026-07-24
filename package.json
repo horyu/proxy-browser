@@ -13,7 +13,7 @@
     "firefox:storage": "node --env-file=.env index.js firefox --with-storage"
   },
   "dependencies": {
-    "playwright": "^1.57.0"
+    "playwright": "1.61.1"
   },
   "devDependencies": {},
   "keywords": [],
